@@ -1,24 +1,24 @@
-import './style.css'
-import javascriptLogo from './javascript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.js'
+import "./style.scss"
+import { router } from "./router";
 
-document.querySelector('#app').innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
-      <img src="${javascriptLogo}" class="logo vanilla" alt="JavaScript logo" />
-    </a>
-    <h1>Hello Vite!</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite logo to learn more
-    </p>
-  </div>
-`
+// eslint-disable-next-line
+import * as bootstrap from 'bootstrap'
 
-setupCounter(document.querySelector('#counter'))
+import { renderHeader } from "./components/header"
+import { renderContent } from "./components/content";
+import { renderFooter } from "./components/footer";
+
+document.addEventListener("DOMContentLoaded",()=>{
+  const appDiv = document.querySelector('#app');
+  const headerDiv = document.querySelector('#header');
+  const footerDiv = document.querySelector('#footer');
+
+  headerDiv.innerHTML = renderHeader();
+  footerDiv.innerHTML = renderFooter();
+  //window.location.hash = "#";
+  router(window.location.hash, appDiv);
+  window.addEventListener("hashchange", () => {
+    router(window.location.hash, appDiv);
+  });
+  //appDiv.innerHTML = renderContent(Array(120).fill(0).map((_,i)=>i));
+});
