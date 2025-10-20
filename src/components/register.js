@@ -1,8 +1,7 @@
-export {renderLogin}
-import {renderHeaderLogin} from "./header";
+export { renderRegister };
 
-function renderLogin(){
-    return `
+function renderRegister() {
+  return `
   <style>
     .register-container {
         padding-top: 50px;
@@ -11,8 +10,8 @@ function renderLogin(){
     }
     </style>
     <div class="register-container">
-        <h2>Login d'Usuari</h2>  
-        <form id="register-form" onsubmit="loginUsuari(event)">
+        <h2>Registre d'Usuari</h2>  
+        <form id="register-form" onsubmit="registrarUsuario(event)">
             <div class="mb-3">
                 <label for="email" class="form-label">Correu Electrònic</label>
                 <input type="email" class="form-control" id="email" required>
@@ -21,19 +20,19 @@ function renderLogin(){
                 <label for="password" class="form-label">Contrasenya</label>
                 <input type="password" class="form-control" id="password" required>
             </div>
-            <button type="submit" class="btn btn-primary">Login</button>
+            <button type="submit" class="btn btn-primary">Registrar-se</button>
         </form>
     </div>
   `;
 }
 
-async function loginUsuari(event) {
+async function registrarUsuario(event) {
     event.preventDefault();
     
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     
-    const response = await fetch('https://vcajpcufcncylxiieboj.supabase.co/auth/v1/token?grant_type=password', {
+    const response = await fetch('https://vcajpcufcncylxiieboj.supabase.co/auth/v1/signup', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -45,27 +44,19 @@ async function loginUsuari(event) {
     const data = await response.json();
     
     console.log(data);
-
+    
 
     if (response.ok) {
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("id", data.user.id);
-        localStorage.setItem("email",data.user.email);
-        
-        alert('login fet amb èxit!');
-
-        const headerDiv = document.querySelector('#header');
-        headerDiv.innerHTML = renderHeaderLogin();
-
-        window.location.hash = '#game';
-    } else {
-        alert('Error en el login: ' + data.msg);
+        alert('Usuari registrat amb èxit!');
         window.location.hash = '#login';
+    } else {
+        alert('Error en el registre: ' + data.error.message);
 
-        renderLogin();
     }
+    
+    
 }
 
 if (typeof window !== 'undefined') {
-    window.loginUsuari = loginUsuari;
+    window.registrarUsuario = registrarUsuario;
 }
