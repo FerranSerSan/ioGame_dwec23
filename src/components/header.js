@@ -48,7 +48,7 @@ function renderHeaderLogin(){
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
             <li><a class="dropdown-item" href="#">Preferenes</a></li>
-            <li><a class="dropdown-item" href="#login" onclick="logout()">Logout</a></li>
+            <li><a id = "logout" class="dropdown-item" href="#login">Logout</a></li>
       
           </ul>
         </li>
@@ -57,34 +57,4 @@ function renderHeaderLogin(){
   </div>
 </nav>
     `;
-}
-
-async function logout() {
-
-  const response = await fetch('https://vcajpcufcncylxiieboj.supabase.co/auth/v1/logout', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjYWpwY3VmY25jeWx4aWllYm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MTczNTcsImV4cCI6MjA3NjA5MzM1N30.rd5_PlobHdbIE-F4Zi3kVVIFmiHSUBWGAq5a0zTHB_E',
-            'Authorization': 'Bearer ' + localStorage.getItem('access_token')  
-          },
-    });
-    
-    const data = await response.json();
-
-     if (response.ok) {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("id");
-        localStorage.removeItem("email");
-        alert('Sessió tancada amb èxit!');
-        
-        const headerDiv = document.querySelector('#header');
-        headerDiv.innerHTML = renderHeader();
-    } else {
-        alert('Error en el logout ' + data.error.message);
-    }
-}
-
-if (typeof window !== 'undefined') {
-    window.logout = logout;
 }

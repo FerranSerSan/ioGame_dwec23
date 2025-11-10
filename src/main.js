@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   const headerDiv = document.querySelector('#header');
   const footerDiv = document.querySelector('#footer');
 
+  appDiv.innerHTML = renderContent();
   headerDiv.innerHTML = renderHeader();
   footerDiv.innerHTML = renderFooter();
   //window.location.hash = "#";
