@@ -1,12 +1,11 @@
 export { renderContent };
 
-/* Constants per a declarar els datos com la longitud del tablero o la puntuacio per a guanyar*/
 const TABLERO_LENGTH = 91;
 const PUNTUACIO_PER_A_GUANYAR = 5;
 const TIPOS_CELDA = {
-  0: "madriguera",
-  1: "topoAzul",
-  2: "topoRojo"
+  madriguera: 0,
+  topoAzul: 1,
+  topoRojo: 2
 }
 
 function defaultState() {
@@ -15,12 +14,10 @@ function defaultState() {
     jugador_actual: 'blau',
     jugador_contrari: 'roig',
     puntuacio_per_a_guanyar: PUNTUACIO_PER_A_GUANYAR,
-    tablero: Array(TABLERO_LENGTH).fill(0),
+    tablero: Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera),
     topo: generarPosicionsTopo(TABLERO_LENGTH)
   };
 }
-
-/* ---------- Funcions pures / helpers ---------- */
 
 function generarPosicionsTopo(tableroLength) {
   const blau = Math.floor(Math.random() * tableroLength);
@@ -32,8 +29,6 @@ function generarPosicionsTopo(tableroLength) {
 }
 
 function actualizarPuntuacio(state, jugador, delta) {
-  // retorna nou objecte state amb la puntuació actualitzada
-  // si la operacio es menor que 0, retorna 0
   const valorActualizat = Math.max(0, state.puntuacio[jugador] + delta);
   return {
     ...state,
@@ -48,25 +43,37 @@ function haGuanyat(state) {
   return state.puntuacio[state.jugador_actual] >= state.puntuacio_per_a_guanyar;
 }
 
-function renderTableroString(tableroActual, topoBlau, topoRoig) {
-  return tableroActual.map((_, i) => {
-    if (i === topoBlau) {
-      return `<div class="board-cell topoAzul" id="cell-${i}">
-                <button class="topo-button" tipo="blau"></button>
+function renderTablero (tableroActual, posicionTopoAzul, posicionTopoRojo) {
+  let tableroCopia = [...tableroActual];
+  tableroCopia.fill(TIPOS_CELDA.madriguera);
+  tableroCopia[posicionTopoAzul] = TIPOS_CELDA.topoAzul;
+  tableroCopia[posicionTopoRojo] = TIPOS_CELDA.topoRojo;
+  return tableroCopia;
+}
+
+
+function renderTableroString(tableroActual, topoBlau, topoRoig) {  
+  tableroActual = renderTablero(tableroActual, topoBlau, topoRoig);
+  
+  return tableroActual.map((posicion, i) => {
+    if (posicion === TIPOS_CELDA.topoAzul) {
+      return `<div class="board-cell topoAzul" id="div${i}">
+                <button class="topo-button" id="${i}"></button>
               </div>`;
-    } else if (i === topoRoig) {
-      return `<div class="board-cell topoRojo" id="cell-${i}">
-                <button class="topo-button" tipo="roig"></button>
+    } else if (posicion === TIPOS_CELDA.topoRojo) {
+      return `<div class="board-cell topoRojo" id="div${i}">
+                <button class="topo-button" id="${i}"></button>
               </div>`;
-    } else {
-      return `<div class="board-cell madriguera" id="cell-${i}">
-                <button class="topo-button" tipo="normal"></button>
+    } else if (posicion === TIPOS_CELDA.madriguera) {
+      return `<div class="board-cell madriguera" id="div${i}">
+                <button class="topo-button" id="${i}"></button>
               </div>`;
     }
   }).join('');
 }
 
 function buildHTML(state) {
+  
   return `
     <div class="puntuacio">
       <div class="punt-blau">
@@ -91,59 +98,39 @@ function buildHTML(state) {
   `;
 }
 
-/*
-  renderContent: crea un root DOM node, hi enganxa el HTML basat en
-  l'estat inicial, i registra UN únic listener (delegació).
-  Retorna el node perquè l'aplicació que l'importa l'afegeixi al document.
-*/
 function renderContent(initialState) {
   let currentState = initialState ? { ...initialState } : defaultState();
-
   const root = document.createElement('div');
   root.className = 'topo-game-root';
   root.innerHTML = buildHTML(currentState);
 
-  // Event delegation: un únic listener al root
   root.addEventListener('click', (ev) => {
-    const btn = ev.target.closest('.topo-button');
-    if (!btn || !root.contains(btn)) return;
+  ev.preventDefault();
 
-    const tipo = btn.getAttribute('tipo');
+  const boton = ev.target.closest('.topo-button');
+  if (!boton) return;
+  const id = parseInt(boton.id);
 
-    // Decideixo el jugador afectat: en la teva lògica sembla que només
-    // modifiques "blau" segons si el clic és de jugador_actual o no.
-    // Si vols que també modifiqui "roig" quan jugador_actual='roig', canvia la lògica.
-    if (tipo === currentState.jugador_actual) {
-      currentState = actualizarPuntuacio(currentState, currentState.jugador_actual, +1);
-    } else if (tipo === currentState.jugador_contrari || tipo == "normal") {
-      currentState = actualizarPuntuacio(currentState, currentState.jugador_actual, -1);
-    }
+  if (id === currentState.topo.blau) {
+    currentState = actualizarPuntuacio(currentState, currentState.jugador_actual, +1); 
+  } else {
+    currentState = actualizarPuntuacio(currentState, currentState.jugador_actual, -1);
+  }
 
-    // Comprovem si s'ha guanyat: en cas afirmatiu, fem reset de puntuacions
-    if (haGuanyat(currentState)) {
-      // EFECTE: alert (confinat aquí)
+  if (haGuanyat(currentState)) { 
+    root.innerHTML = buildHTML(currentState);
+
+    setTimeout(() => {
       alert(`El jugador ${currentState.jugador_actual} ha guanyat!`);
-      currentState = {
-        ...currentState,
-        puntuacio: { blau: 0, roig: 0 }
-      };
-    }
+      currentState = defaultState();
+      root.innerHTML = buildHTML(currentState);
+    }, 300);
+    
+    return;
+  }
 
-    // Generem nous topos (purs)
-    currentState = {
-      ...currentState,
-      topo: generarPosicionsTopo(currentState.tablero.length)
-    };
-
-    // Re-render parcial: actualitzem marcador i tauler dins del root
-    const puntsBlauNode = root.querySelector('.punts-blau');
-    const puntsRoigNode = root.querySelector('.punts-roig');
-    const boardNode = root.querySelector('.board');
-
-    if (puntsBlauNode) puntsBlauNode.textContent = String(currentState.puntuacio.blau);
-    if (puntsRoigNode) puntsRoigNode.textContent = String(currentState.puntuacio.roig);
-    if (boardNode) boardNode.innerHTML = renderTableroString(currentState.tablero, currentState.topo.blau, currentState.topo.roig);
-  });
-
+  currentState.topo = generarPosicionsTopo(TABLERO_LENGTH);
+  root.innerHTML = buildHTML(currentState);
+});
   return root;
 }
