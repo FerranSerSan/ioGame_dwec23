@@ -46,6 +46,10 @@
   background-image: url('./imgs/topo_roig.png');
 }
 
+.topoVerde {
+  background-image: url('./imgs/topo_verde.png');
+}
+
 .madriguera {
   background-image: url('./imgs/madriguera.png');
 }
@@ -63,12 +67,41 @@
   z-index: 2;
   transition: border 0.2s;
 }
-/*
-.topo-button:hover {
-  border-color: #b91c1c; 
-  opacity: 1;
+
+.color-Topo {
+  text-align: center;
+  margin-top: 20px;
 }
-*/
+
+.color1 {
+  width: 80px;
+  height: 80px;
+  background-image: url('./imgs/topo_azul.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  margin: 10px auto;
+}
+
+.color2 {
+  width: 80px;
+  height: 80px;
+  background-image: url('./imgs/topo_roig.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  margin: 10px auto;
+}
+
+.color3 {
+  width: 80px;
+  height: 80px;
+  background-image: url('./imgs/topo_verde.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  margin: 10px auto;
+}
 
 /* Footer */
 footer {
@@ -89,44 +122,38 @@ footer {
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
-/* Cada bloc de puntuació */
-.puntuacio .punt-blau,
-.puntuacio .punt-roig {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.6rem;
-  border-radius: 8px;
+.puntuacio span {
+  font-weight: bold;
+  font-size: 1.25rem;
+  color: black;
 }
 
-/* Fons lleu segons color */
-.puntuacio .punt-blau {
-  background: rgba(59,130,246,0.06); /* blau suau */
-}
-.puntuacio .punt-roig {
-  background: rgba(239,68,68,0.06); /* roig suau */
+.puntuacio div span:first-child {
+  font-weight: normal;
+  margin-right: 0.25rem;
+  color: #333;
 }
 
-/* Etiquetes de text (Topo Blau / Topo Roig) */
-.color-blau {
-  color: #1e40af;
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-.color-roig {
-  color: #b91c1c;
-  font-weight: 600;
-  font-size: 0.95rem;
+.puntuacio div span:last-child {
+  font-weight: bold;
+  font-size: 1.25rem;
+  color: #000;
 }
 
-/* Valor de la puntuació */
-#punts-blau,
-#punts-roig {
-  font-size: 1.15rem;
+
+
+.start-button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #0f172a;
-  min-width: 2ch;
-  text-align: center;
-  padding: 0.1rem 0.4rem;
-  border-radius: 6px;
+  color: #fff;
+  background: #1e40af;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+
+  
+  display: block;
+  margin: 40px auto;
 }

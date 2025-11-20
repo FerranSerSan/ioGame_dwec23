@@ -1,96 +1,113 @@
 export { renderContent };
 
 const TABLERO_LENGTH = 91;
-const PUNTUACIO_PER_A_GUANYAR = 5;
+const PUNTUACIO_PER_A_GUANYAR = 3;
+const JUGADOR_ACTUAL = "Ferran";
+const JUGADOR_CONTRARI = "x";
 const TIPOS_CELDA = {
   madriguera: 0,
   topoAzul: 1,
-  topoRojo: 2
-}
+  topoRojo: 2,
+  topoVerde: 3
+};
 
+// Estado por defecto
 function defaultState() {
   return {
-    puntuacio: { blau: 0, roig: 0 },
-    jugador_actual: 'blau',
-    jugador_contrari: 'roig',
+    puntuacio: { [JUGADOR_ACTUAL]: 0, [JUGADOR_CONTRARI]: 0 },
     puntuacio_per_a_guanyar: PUNTUACIO_PER_A_GUANYAR,
     tablero: Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera),
-    topo: generarPosicionsTopo(TABLERO_LENGTH)
+    colorTopoActual: colorAleatori(),
+    topo: generarPosicionsTopo()
   };
 }
 
-function generarPosicionsTopo(tableroLength) {
-  const blau = Math.floor(Math.random() * tableroLength);
-  let roig;
-  do {
-    roig = Math.floor(Math.random() * tableroLength); 
-  } while (roig === blau);
-  return { blau, roig };
+// Color aleatorio
+function colorAleatori() {
+  const colores = Object.values(TIPOS_CELDA).filter(v => v !== TIPOS_CELDA.madriguera);
+  const index = Math.floor(Math.random() * colores.length);
+  return colores[index];
 }
 
-function actualizarPuntuacio(state, jugador, delta) {
-  const valorActualizat = Math.max(0, state.puntuacio[jugador] + delta);
+// Genera posiciones aleatorias de topos
+function generarPosicionsTopo() {
+  const colores = Object.values(TIPOS_CELDA).filter(v => v !== TIPOS_CELDA.madriguera);
+  const posiciones = {};
+  const usados = new Set();
+
+  colores.forEach(color => {
+    let pos;
+    do {
+      pos = Math.floor(Math.random() * TABLERO_LENGTH);
+    } while (usados.has(pos));
+    usados.add(pos);
+    posiciones[color] = pos;
+  });
+
+  return posiciones;
+}
+
+// Actualiza puntuación
+function actualizarPuntuacio(state, delta) {
+  const valorActualizat = Math.max(0, state.puntuacio[JUGADOR_ACTUAL] + delta);
   return {
     ...state,
     puntuacio: {
       ...state.puntuacio,
-      [jugador]: valorActualizat
+      [JUGADOR_ACTUAL]: valorActualizat
     }
   };
 }
 
+// Comprobación de victoria
 function haGuanyat(state) {
-  return state.puntuacio[state.jugador_actual] >= state.puntuacio_per_a_guanyar;
+  return state.puntuacio[JUGADOR_ACTUAL] >= state.puntuacio_per_a_guanyar;
 }
 
-function renderTablero (tableroActual, posicionTopoAzul, posicionTopoRojo) {
-  let tableroCopia = [...tableroActual];
+// Renderiza el tablero con topos desde currentState.topo
+function renderTablero(tableroActual, topos) {
+  const tableroCopia = [...tableroActual];
   tableroCopia.fill(TIPOS_CELDA.madriguera);
-  tableroCopia[posicionTopoAzul] = TIPOS_CELDA.topoAzul;
-  tableroCopia[posicionTopoRojo] = TIPOS_CELDA.topoRojo;
+
+  for (const color in topos) {
+    const pos = topos[color];
+    if (pos >= 0 && pos < TABLERO_LENGTH) {
+      tableroCopia[pos] = parseInt(color);
+    }
+  }
+
   return tableroCopia;
 }
 
+// Genera HTML de cada celda
+function renderTableroString(tableroActual, topos) {
+  tableroActual = renderTablero(tableroActual, topos);
 
-function renderTableroString(tableroActual, topoBlau, topoRoig) {  
-  tableroActual = renderTablero(tableroActual, topoBlau, topoRoig);
-  
   return tableroActual.map((posicion, i) => {
-    if (posicion === TIPOS_CELDA.topoAzul) {
-      return `<div class="board-cell topoAzul" id="div${i}">
-                <button class="topo-button" id="${i}"></button>
-              </div>`;
-    } else if (posicion === TIPOS_CELDA.topoRojo) {
-      return `<div class="board-cell topoRojo" id="div${i}">
-                <button class="topo-button" id="${i}"></button>
-              </div>`;
-    } else if (posicion === TIPOS_CELDA.madriguera) {
-      return `<div class="board-cell madriguera" id="div${i}">
-                <button class="topo-button" id="${i}"></button>
-              </div>`;
-    }
+    const colorClass = Object.keys(TIPOS_CELDA).find(key => TIPOS_CELDA[key] === posicion);
+    return `<div class="board-cell ${colorClass}" id="div${i}">
+              <button class="topo-button" id="${i}"></button>
+            </div>`;
   }).join('');
 }
 
+// HTML completo del juego
 function buildHTML(state) {
-  
   return `
     <div class="puntuacio">
-      <div class="punt-blau">
-        <span class="color-blau">Topo Blau:</span>
-        <span class="punts-blau">${state.puntuacio.blau}</span>
-      </div>
-      <div class="punt-roig">
-        <span class="color-roig">Topo Roig:</span>
-        <span class="punts-roig">${state.puntuacio.roig}</span>
-      </div>
+      <div><span>${JUGADOR_ACTUAL}:</span> <span>${state.puntuacio[JUGADOR_ACTUAL]}</span></div>
+      <div><span>${JUGADOR_CONTRARI}:</span> <span>${state.puntuacio[JUGADOR_CONTRARI]}</span></div>
+    </div>
+
+    <div class="color-Topo">
+      <div class="${"color" + state.colorTopoActual}"></div>
     </div>
 
     <div class="container">
       <div class="board-wrapper">
         <div class="game-area">
           <div class="board">
-            ${renderTableroString(state.tablero, state.topo.blau, state.topo.roig)}
+            ${renderTableroString(state.tablero, state.topo)}
           </div>
         </div>
       </div>
@@ -98,39 +115,66 @@ function buildHTML(state) {
   `;
 }
 
-function renderContent(initialState) {
-  let currentState = initialState ? { ...initialState } : defaultState();
+// Función principal
+function renderContent() {
   const root = document.createElement('div');
   root.className = 'topo-game-root';
+  renderInici(root);
+  return root;
+}
+
+// Pantalla de inicio
+function renderInici(root) {
+  root.innerHTML = `
+    <div class="pantalla-inici">
+      <button id="start-button" class="start-button">Començar partida</button>
+    </div>
+  `;
+
+  const startBtn = root.querySelector('#start-button');
+  startBtn.addEventListener('click', () => {
+    const newState = defaultState();
+    renderJoc(root, newState);
+  });
+}
+
+// Pantalla del juego
+function renderJoc(root, currentState) {
   root.innerHTML = buildHTML(currentState);
 
-  root.addEventListener('click', (ev) => {
-  ev.preventDefault();
+  console.log(currentState.topo);
 
-  const boton = ev.target.closest('.topo-button');
-  if (!boton) return;
-  const id = parseInt(boton.id);
+  root.onclick = (ev) => {
+    const boton = ev.target.closest('.topo-button');
+    if (!boton) return;
+    const id = parseInt(boton.id);
 
-  if (id === currentState.topo.blau) {
-    currentState = actualizarPuntuacio(currentState, currentState.jugador_actual, +1); 
-  } else {
-    currentState = actualizarPuntuacio(currentState, currentState.jugador_actual, -1);
-  }
+    // Comprobar si se ha clicado algún topo
+    let acierto = false;
+    for (const color in currentState.topo) {
+      if (currentState.topo[color] === id) {
+        currentState = actualizarPuntuacio(currentState, +1);
+        acierto = true;
+        break;
+      }
+    }
+    if (!acierto) currentState = actualizarPuntuacio(currentState, -1);
 
-  if (haGuanyat(currentState)) { 
-    root.innerHTML = buildHTML(currentState);
+    // Ocultar tablero momentáneamente
+    const boardDiv = root.querySelector('.board');
+    const tableroAmagat = Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera);
+    boardDiv.innerHTML = renderTableroString(tableroAmagat, {});
 
     setTimeout(() => {
-      alert(`El jugador ${currentState.jugador_actual} ha guanyat!`);
-      currentState = defaultState();
+      if (haGuanyat(currentState)) {
+        alert(`El jugador ${JUGADOR_ACTUAL} ha guanyat!`);
+        renderInici(root);
+        return;
+      }
+
+      // Generar nuevas posiciones de los topos
+      currentState.topo = generarPosicionsTopo();
       root.innerHTML = buildHTML(currentState);
     }, 300);
-    
-    return;
-  }
-
-  currentState.topo = generarPosicionsTopo(TABLERO_LENGTH);
-  root.innerHTML = buildHTML(currentState);
-});
-  return root;
+  };
 }
