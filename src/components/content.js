@@ -1,25 +1,32 @@
 export { renderContent };
 
 const TABLERO_LENGTH = 91;
-const PUNTUACIO_PER_A_GUANYAR = 3;
 const JUGADOR_ACTUAL = "Ferran";
-const JUGADOR_CONTRARI = "x";
+const TEMPS = 30; // segons
 const TIPOS_CELDA = {
   madriguera: 0,
-  topoAzul: 1,
-  topoRojo: 2,
-  topoVerde: 3
+  topoMorado: 1,
+  topoAzul: 2,
+  topoRojo: 3,
+  topoRosa: 4,
+  topoGris: 5,
+  topoAmarillo: 6,
+  topoVerde: 7
 };
 
 // Estado por defecto
 function defaultState() {
   return {
-    puntuacio: { [JUGADOR_ACTUAL]: 0, [JUGADOR_CONTRARI]: 0 },
-    puntuacio_per_a_guanyar: PUNTUACIO_PER_A_GUANYAR,
+    puntuacio: 0,
+    tempsRestant: calcularTemps(),
     tablero: Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera),
     colorTopoActual: colorAleatori(),
     topo: generarPosicionsTopo()
   };
+}
+
+function calcularTemps() {
+  
 }
 
 // Color aleatorio
@@ -49,19 +56,16 @@ function generarPosicionsTopo() {
 
 // Actualiza puntuación
 function actualizarPuntuacio(state, delta) {
-  const valorActualizat = Math.max(0, state.puntuacio[JUGADOR_ACTUAL] + delta);
+  const valorActualizat = Math.max(0, state.puntuacio + delta);
   return {
     ...state,
-    puntuacio: {
-      ...state.puntuacio,
-      [JUGADOR_ACTUAL]: valorActualizat
-    }
+    puntuacio: valorActualizat
   };
 }
 
-// Comprobación de victoria
-function haGuanyat(state) {
-  return state.puntuacio[JUGADOR_ACTUAL] >= state.puntuacio_per_a_guanyar;
+function seHaAcabatElTemps(state) {
+  // si el temps es 0 o menys, ha acabat
+  return state.tempsRestant <= 0;
 }
 
 // Renderiza el tablero con topos desde currentState.topo
@@ -93,16 +97,36 @@ function renderTableroString(tableroActual, topos) {
 
 // HTML completo del juego
 function buildHTML(state) {
+  return buildPuntuacio(state) +
+    buildColorTopo(state) +
+    buildTablero(state);
+}
+
+function buildPuntuacio(state) {
   return `
-    <div class="puntuacio">
-      <div><span>${JUGADOR_ACTUAL}:</span> <span>${state.puntuacio[JUGADOR_ACTUAL]}</span></div>
-      <div><span>${JUGADOR_CONTRARI}:</span> <span>${state.puntuacio[JUGADOR_CONTRARI]}</span></div>
+  <div class="puntuacio">
+      <div><span>${JUGADOR_ACTUAL}:</span> <span>${state.puntuacio}</span></div>
+      <div><span>Temps restant:</span> <span>${state.tempsRestant}s </span></div>
     </div>
+    `;
+}
 
-    <div class="color-Topo">
-      <div class="${"color" + state.colorTopoActual}"></div>
-    </div>
+function buildColorTopo(state) {
+  state.colorTopoActual = colorAleatori();
 
+  const colorClave = Object.keys(TIPOS_CELDA).find(
+    key => TIPOS_CELDA[key] === state.colorTopoActual
+  );
+
+  console.log("Color topo actual: " + colorClave);
+  return `
+  <div class="color-Topo">
+    <div class="${colorClave}"></div>
+  </div>`;
+}
+
+function buildTablero(state) {
+  return `
     <div class="container">
       <div class="board-wrapper">
         <div class="game-area">
@@ -115,6 +139,7 @@ function buildHTML(state) {
   `;
 }
 
+
 // Función principal
 function renderContent() {
   const root = document.createElement('div');
@@ -126,6 +151,14 @@ function renderContent() {
 // Pantalla de inicio
 function renderInici(root) {
   root.innerHTML = `
+    <div class="title"> Atrapa El topo </div>
+    <div class="regles">
+      <h2>Regles del joc</h2>
+      <div class="rule"><span class="rule-text">Fes clic al topo del color que apareix a la part superior</span><span class="rule-score">+1p</span></div>
+      <div class="rule"><span class="rule-text">Fer clic a una madriguera</span><span class="rule-score">-1p</span></div>
+      <div class="rule"><span class="rule-text">Fer clic a un topo d'un altre color</span><span class="rule-score">-2p</span></div>
+      <p class="rule-note">El joc acaba quan s'acaba el temps. Bona sort!</p>
+    </div>
     <div class="pantalla-inici">
       <button id="start-button" class="start-button">Començar partida</button>
     </div>
@@ -138,9 +171,17 @@ function renderInici(root) {
   });
 }
 
+function htmlbotoGuardar() {
+  return `
+    <div class="guardar-partida">
+      <button id="guardar-button" class="guardar-button">Guardar partida</button>
+    </div>
+  `;
+}
+
 // Pantalla del juego
 function renderJoc(root, currentState) {
-  root.innerHTML = buildHTML(currentState);
+  root.innerHTML = htmlbotoGuardar() + buildHTML(currentState);
 
   console.log(currentState.topo);
 
@@ -149,32 +190,38 @@ function renderJoc(root, currentState) {
     if (!boton) return;
     const id = parseInt(boton.id);
 
-    // Comprobar si se ha clicado algún topo
-    let acierto = false;
+    // Comprobar si se ha clicado en el topo correcto
+    let clickedColor = 0;
     for (const color in currentState.topo) {
       if (currentState.topo[color] === id) {
-        currentState = actualizarPuntuacio(currentState, +1);
-        acierto = true;
-        break;
+      clickedColor = parseInt(color, 10);
+      break;
       }
     }
-    if (!acierto) currentState = actualizarPuntuacio(currentState, -1);
+    if (clickedColor === currentState.colorTopoActual) {
+      currentState = actualizarPuntuacio(currentState, +1);
+    } else if (clickedColor === TIPOS_CELDA.madriguera) {
+      currentState = actualizarPuntuacio(currentState, -1);
+    } else {
+      currentState = actualizarPuntuacio(currentState, -2);
+    }
 
     // Ocultar tablero momentáneamente
     const boardDiv = root.querySelector('.board');
     const tableroAmagat = Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera);
     boardDiv.innerHTML = renderTableroString(tableroAmagat, {});
 
+    // Esperar 300ms antes de actualizar el tablero
     setTimeout(() => {
-      if (haGuanyat(currentState)) {
-        alert(`El jugador ${JUGADOR_ACTUAL} ha guanyat!`);
+      if (seHaAcabatElTemps(currentState)) {
+        alert(`La puntuació final de ${JUGADOR_ACTUAL} és ${currentState.puntuacio}.`);
         renderInici(root);
         return;
       }
 
       // Generar nuevas posiciones de los topos
       currentState.topo = generarPosicionsTopo();
-      root.innerHTML = buildHTML(currentState);
+      root.innerHTML = htmlbotoGuardar() + buildHTML(currentState);
     }, 300);
   };
 }

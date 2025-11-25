@@ -12,7 +12,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: #77c046;
+  background-image: url('./imgs/suelo.png');
 }
 
 /*
@@ -43,15 +43,41 @@
 }
 
 .topoRojo {
-  background-image: url('./imgs/topo_roig.png');
+  background-image: url('./imgs/topo_rojo.png');
 }
 
 .topoVerde {
   background-image: url('./imgs/topo_verde.png');
 }
 
+.topoRosa {
+  background-image: url('./imgs/topo_rosa.png');
+}
+
+.topoGris {
+  background-image: url('./imgs/topo_gris.png');
+}
+
+.topoAmarillo {
+  background-image: url('./imgs/topo_amarillo.png');
+}
+
+.topoMorado {
+  background-image: url('./imgs/topo_morado.png');
+}
+
 .madriguera {
   background-image: url('./imgs/madriguera.png');
+}
+
+.topoRojo, .topoAzul, .topoVerde, .topoRosa, .topoGris, .topoAmarillo, .topoMorado, .madriguera {
+  width: 90px;
+  height: 90px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position:top center;
+  margin: 10px auto;
+  filter: drop-shadow(5px 5px 10px rgba(0, 0, 0, 0.5));
 }
 
 .topo-button {
@@ -71,36 +97,6 @@
 .color-Topo {
   text-align: center;
   margin-top: 20px;
-}
-
-.color1 {
-  width: 80px;
-  height: 80px;
-  background-image: url('./imgs/topo_azul.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  margin: 10px auto;
-}
-
-.color2 {
-  width: 80px;
-  height: 80px;
-  background-image: url('./imgs/topo_roig.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  margin: 10px auto;
-}
-
-.color3 {
-  width: 80px;
-  height: 80px;
-  background-image: url('./imgs/topo_verde.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  margin: 10px auto;
 }
 
 /* Footer */
@@ -157,3 +153,89 @@ footer {
   display: block;
   margin: 40px auto;
 }
+
+.title {
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-size: 3rem;
+  font-weight: 800;
+  text-transform: lowercase;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-top: 20px;
+  color: #1f2937; /* gris oscuro */
+  text-shadow: 0 2px 0 rgba(0,0,0,0.05);
+}
+
+.regles {
+  max-width: 720px;
+  margin: 18px auto;
+  background: rgba(255,255,255,0.9);
+  border-radius: 12px;
+  padding: 18px 22px;
+  box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+  color: #111827;
+  line-height: 1.5;
+}
+
+.regles h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+
+.regles p {
+  margin: 6px 0;
+  font-size: 0.98rem;
+  color: #374151;
+}
+
+.pantalla-inici {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+/* estilos para el area de guardar partida */
+.guardar-partida {
+  display: flex;
+  justify-content: start;
+  margin-top: 12px;
+  margin-left: 20px;
+}
+
+.guardar-button {
+  padding: 0.5rem 0.9rem;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: none;
+  background: #10b981;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(16,185,129,0.18);
+  cursor: pointer;
+}
+
+.regles .rule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 6px 0;
+}
+
+.regles .rule-text {
+  flex: 1 1 auto;
+  margin-right: 0.5rem;
+  color: #374151;
+  font-size: 0.98rem;
+}
+
+.regles .rule-score {
+  flex: 0 0 64px; /* ancho fijo para alinear todas las puntuaciones */
+  text-align: right;
+  font-weight: 800;
+  color: #111827;
+  background: rgba(255,255,255,0.02);
+}
+
