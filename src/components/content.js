@@ -1,8 +1,12 @@
-export { renderContent };
+export { renderContent, comprobarClickEnTopo, actualizarPuntuacio};
+
+import { interval } from 'rxjs';
 
 const TABLERO_LENGTH = 91;
-const JUGADOR_ACTUAL = "Ferran";
-const TEMPS = 30; // segons
+const JUGADOR_ACTUAL = "Jugadorx";
+const TEMPS = 3000; // segons
+const PENALIZACION_MADRIGUERA = 3; // segons que se resten
+const PENALIZACION_COLOR_INCORRECTE = 5; // segons que se resten
 const TIPOS_CELDA = {
   madriguera: 0,
   topoMorado: 1,
@@ -14,29 +18,30 @@ const TIPOS_CELDA = {
   topoVerde: 7
 };
 
-// Estado por defecto
+// Estat per defecte
 function defaultState() {
   return {
     puntuacio: 0,
-    tempsRestant: calcularTemps(),
+    tempsRestant: TEMPS,
     tablero: Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera),
     colorTopoActual: colorAleatori(),
     topo: generarPosicionsTopo()
   };
 }
 
-function calcularTemps() {
-  
-}
-
-// Color aleatorio
+// genera un numero aleatori per a asignarlo a el topo al que hi ha que capturar
+// del array de tipos de celda, tria un index que no siga 0, per a que no ixca el index de la madriguera
 function colorAleatori() {
   const colores = Object.values(TIPOS_CELDA).filter(v => v !== TIPOS_CELDA.madriguera);
   const index = Math.floor(Math.random() * colores.length);
   return colores[index];
 }
 
-// Genera posiciones aleatorias de topos
+// Crea un array amb tots els colors disponibles:
+// - colores: [1,2,3,4,5,6,7]
+// Recorre el array y li dona a cada color una posicion aleatoria del tablero que no estiga utilitzada
+// - posiciones: { 1: 14, 2: 10, 3: 64, 4: 74, 5: 2, 6: 5, 7: 23 }
+// retorna el objecte posicions y es guarda en status.topo
 function generarPosicionsTopo() {
   const colores = Object.values(TIPOS_CELDA).filter(v => v !== TIPOS_CELDA.madriguera);
   const posiciones = {};
@@ -54,7 +59,7 @@ function generarPosicionsTopo() {
   return posiciones;
 }
 
-// Actualiza puntuación
+// Suma un valor a la puntuacio del state y retorna la nova puntuacio
 function actualizarPuntuacio(state, delta) {
   const valorActualizat = Math.max(0, state.puntuacio + delta);
   return {
@@ -63,12 +68,31 @@ function actualizarPuntuacio(state, delta) {
   };
 }
 
+// Resta un valor al temps del state y retoran el nou temps
+function actualizarTemps(state, deltaSegundos) {
+  const nuevoTemps = Math.max(0, state.tempsRestant - deltaSegundos);
+  return {
+    ...state,
+    tempsRestant: nuevoTemps
+  };
+}
+
+// comprova si el temps del state es menor o igual a 0
+// retorna true si se ha acabat el temps o false si encara no
 function seHaAcabatElTemps(state) {
-  // si el temps es 0 o menys, ha acabat
   return state.tempsRestant <= 0;
 }
 
-// Renderiza el tablero con topos desde currentState.topo
+// crea una copia del tablero actual pera a no modificar el original
+// - [0,0,0,0,3,0,0,0,0,0,0,1,0...]
+// el plena de madrigueres, per a borrar els topos (tot a 0)
+// - [0,0,0,0,0,0,0,0,0,0,0,0,0...]
+// recorre el objecte topos que conte { color: posicion }
+// - { 1: 14, 2: 10, 3: 64, 4: 74, 5: 2, 6: 5, 7: 23 }
+// obte la posicio de cada topo y el añadix a la copia del tablero
+// - [0,0,5,0,0,6,0,0,0,0,2,0,0...]
+// retorna el tablero nou
+
 function renderTablero(tableroActual, topos) {
   const tableroCopia = [...tableroActual];
   tableroCopia.fill(TIPOS_CELDA.madriguera);
@@ -105,15 +129,13 @@ function buildHTML(state) {
 function buildPuntuacio(state) {
   return `
   <div class="puntuacio">
-      <div><span>${JUGADOR_ACTUAL}:</span> <span>${state.puntuacio}</span></div>
-      <div><span>Temps restant:</span> <span>${state.tempsRestant}s </span></div>
+      <div><span>Puntuacio:</span> <span id="puntuacio-valor">${state.puntuacio}</span></div>
+      <div><span>Temps restant:</span> <span id="temps-restant">${state.tempsRestant}s</span></div>
     </div>
     `;
 }
 
 function buildColorTopo(state) {
-  state.colorTopoActual = colorAleatori();
-
   const colorClave = Object.keys(TIPOS_CELDA).find(
     key => TIPOS_CELDA[key] === state.colorTopoActual
   );
@@ -121,7 +143,7 @@ function buildColorTopo(state) {
   console.log("Color topo actual: " + colorClave);
   return `
   <div class="color-Topo">
-    <div class="${colorClave}"></div>
+    <div class="${colorClave}" id="color-objetivo"></div>
   </div>`;
 }
 
@@ -139,6 +161,13 @@ function buildTablero(state) {
   `;
 }
 
+function htmlbotoGuardar() {
+  return `
+    <div class="guardar-partida">
+      <button id="guardar-button" class="guardar-button">Guardar partida</button>
+    </div>
+  `;
+}
 
 // Función principal
 function renderContent() {
@@ -155,8 +184,8 @@ function renderInici(root) {
     <div class="regles">
       <h2>Regles del joc</h2>
       <div class="rule"><span class="rule-text">Fes clic al topo del color que apareix a la part superior</span><span class="rule-score">+1p</span></div>
-      <div class="rule"><span class="rule-text">Fer clic a una madriguera</span><span class="rule-score">-1p</span></div>
-      <div class="rule"><span class="rule-text">Fer clic a un topo d'un altre color</span><span class="rule-score">-2p</span></div>
+      <div class="rule"><span class="rule-text">Fer clic a una madriguera</span><span class="rule-score">-${PENALIZACION_MADRIGUERA}s</span></div>
+      <div class="rule"><span class="rule-text">Fer clic a un topo d'un altre color</span><span class="rule-score">-${PENALIZACION_COLOR_INCORRECTE}s</span></div>
       <p class="rule-note">El joc acaba quan s'acaba el temps. Bona sort!</p>
     </div>
     <div class="pantalla-inici">
@@ -171,57 +200,127 @@ function renderInici(root) {
   });
 }
 
-function htmlbotoGuardar() {
-  return `
-    <div class="guardar-partida">
-      <button id="guardar-button" class="guardar-button">Guardar partida</button>
-    </div>
-  `;
+// Comprobar en qué tipo de celda se hizo clic
+function comprobarClickEnTopo(id, topos) {
+  for (const color in topos) {
+    if (topos[color] === id) {
+      return parseInt(color, 10);
+    }
+  }
+  return TIPOS_CELDA.madriguera;
 }
+
+// Actualizar UI de puntuación y tiempo
+function actualizarUI(root, state, remaining) {
+  const scoreSpan = root.querySelector('#puntuacio-valor');
+  if (scoreSpan) scoreSpan.textContent = String(state.puntuacio);
+  
+  const timeSpan = root.querySelector('#temps-restant');
+  if (timeSpan) timeSpan.textContent = `${remaining}s`;
+}
+
+// Ocultar tablero temporalmente
+function ocultarTablero(root) {
+  const boardDiv = root.querySelector('.board');
+  const tableroAmagat = Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera);
+  boardDiv.innerHTML = renderTableroString(tableroAmagat, {});
+}
+
+// Actualizar tablero y color objetivo
+function actualizarTableroYColor(root, state) {
+  const boardDiv = root.querySelector('.board');
+  if (boardDiv) {
+    boardDiv.innerHTML = renderTableroString(state.tablero, state.topo);
+  }
+
+  const colorDiv = root.querySelector('#color-objetivo');
+  if (colorDiv) {
+    const colorClave = Object.keys(TIPOS_CELDA).find(
+      key => TIPOS_CELDA[key] === state.colorTopoActual
+    );
+    colorDiv.className = colorClave;
+  }
+}
+
+// Finalizar juego
+function finalizarJoc(root, timerSub, puntuacio) {
+  if (timerSub) timerSub.unsubscribe();
+  alert(`La puntuació final de ${JUGADOR_ACTUAL} és ${puntuacio}.`);
+  renderInici(root);
+}
+
 
 // Pantalla del juego
 function renderJoc(root, currentState) {
   root.innerHTML = htmlbotoGuardar() + buildHTML(currentState);
 
-  console.log(currentState.topo);
+  // Referencia compartida para el timer y remaining
+  let remaining = currentState.tempsRestant;
+  let timerSub = null;
 
-  root.onclick = (ev) => {
+  // Iniciar temporizador
+  if (timerSub) timerSub.unsubscribe();
+  
+  timerSub = interval(1000).subscribe(() => {
+    remaining = Math.max(0, remaining - 1);
+    currentState.tempsRestant = remaining;
+
+    const timeSpan = root.querySelector('#temps-restant');
+    if (timeSpan) timeSpan.textContent = `${remaining}s`;
+
+    if (remaining <= 0) {
+      finalizarJoc(root, timerSub, currentState.puntuacio);
+    }
+  });
+
+  // Event delegation para los clicks en el tablero
+  const gameArea = root.querySelector('.game-area');
+  gameArea.addEventListener('click', (ev) => {
     const boton = ev.target.closest('.topo-button');
     if (!boton) return;
+
     const id = parseInt(boton.id);
-
-    // Comprobar si se ha clicado en el topo correcto
-    let clickedColor = 0;
-    for (const color in currentState.topo) {
-      if (currentState.topo[color] === id) {
-      clickedColor = parseInt(color, 10);
-      break;
-      }
-    }
-    if (clickedColor === currentState.colorTopoActual) {
+    
+    // Comprobar en qué se hizo clic
+    const clickEnTopo = comprobarClickEnTopo(id, currentState.topo);
+    
+    // Actualizar estado según el click
+    if (clickEnTopo === currentState.colorTopoActual) {
       currentState = actualizarPuntuacio(currentState, +1);
-    } else if (clickedColor === TIPOS_CELDA.madriguera) {
-      currentState = actualizarPuntuacio(currentState, -1);
+    } else if (clickEnTopo === TIPOS_CELDA.madriguera) {
+      currentState = actualizarTemps(currentState, PENALIZACION_MADRIGUERA);
     } else {
-      currentState = actualizarPuntuacio(currentState, -2);
+      currentState = actualizarTemps(currentState, PENALIZACION_COLOR_INCORRECTE);
     }
 
-    // Ocultar tablero momentáneamente
-    const boardDiv = root.querySelector('.board');
-    const tableroAmagat = Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera);
-    boardDiv.innerHTML = renderTableroString(tableroAmagat, {});
+    // Sincronizar remaining con el state
+    remaining = currentState.tempsRestant;
+
+    // Actualizar UI
+    actualizarUI(root, currentState, remaining);
+
+    // Verificar si se acabó el tiempo por el click
+    if (remaining <= 0) {
+      finalizarJoc(root, timerSub, currentState.puntuacio);
+      return;
+    }
+
+    // Ocultar tablero temporalmente
+    ocultarTablero(root);
 
     // Esperar 300ms antes de actualizar el tablero
     setTimeout(() => {
       if (seHaAcabatElTemps(currentState)) {
-        alert(`La puntuació final de ${JUGADOR_ACTUAL} és ${currentState.puntuacio}.`);
-        renderInici(root);
+        finalizarJoc(root, timerSub, currentState.puntuacio);
         return;
       }
 
-      // Generar nuevas posiciones de los topos
+      // Generar nuevo estado
       currentState.topo = generarPosicionsTopo();
-      root.innerHTML = htmlbotoGuardar() + buildHTML(currentState);
+      currentState.colorTopoActual = colorAleatori();
+      
+      // Actualizar tablero y color
+      actualizarTableroYColor(root, currentState);
     }, 300);
-  };
+  });
 }
