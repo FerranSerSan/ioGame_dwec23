@@ -1,4 +1,4 @@
-export { renderContent, comprobarClickEnTopo, actualizarPuntuacio};
+export { renderContent, traurerTipoCelda, actualizarPuntuacio};
 
 import { interval } from 'rxjs';
 
@@ -223,19 +223,22 @@ function renderInici(root) {
 }
 
 
-// --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// Comprobar en qué tipo de celda se hizo clic
-
-// 
-function comprobarClickEnTopo(id, topos) {
+// a esta funcio se li pasa la posicio del boto al que se ha apretat per a comprovar si en el array de topos hi ha algin topo en ixa pocicio
+// - si en ixa posicio hi ha algun topo, es retorna el id del topo al que li se ha fet click
+// - si no, es retorna el id de la madriguera, que es 0
+// id es el valor de una clase que li se asigna al boto del topo, servix per a saber a quin boto ha fet click
+function traurerTipoCelda(id, topos) {
   for (const color in topos) {
     if (topos[color] === id) {
+      console.log(parseInt(color, 10) + "---" + id);
       return parseInt(color, 10);
     }
   }
+  console.log(parseInt(id));
   return TIPOS_CELDA.madriguera;
 }
 
+// ---------------------------------------------------------------
 // Actualizar UI de puntuación y tiempo
 function actualizarUI(root, state, remaining) {
   const scoreSpan = root.querySelector('#puntuacio-valor');
@@ -245,6 +248,7 @@ function actualizarUI(root, state, remaining) {
   if (timeSpan) timeSpan.textContent = `${remaining}s`;
 }
 
+// ---------------------------------------------------------------
 // Ocultar tablero temporalmente
 function ocultarTablero(root) {
   const boardDiv = root.querySelector('.board');
@@ -252,6 +256,7 @@ function ocultarTablero(root) {
   boardDiv.innerHTML = renderTableroHTML(tableroAmagat, {});
 }
 
+// -------------------------------------------------------------------
 // Actualizar tablero y color objetivo
 function actualizarTableroYColor(root, state) {
   const boardDiv = root.querySelector('.board');
@@ -268,6 +273,7 @@ function actualizarTableroYColor(root, state) {
   }
 }
 
+// -------------------------------------------------------------------
 // Finalizar juego
 function finalizarJoc(root, timerSub, puntuacio) {
   if (timerSub) timerSub.unsubscribe();
@@ -275,15 +281,16 @@ function finalizarJoc(root, timerSub, puntuacio) {
   renderInici(root);
 }
 
-
+// -------------------------------------------------------------------
 // Pantalla del juego
 function renderJoc(root, currentState) {
   root.innerHTML = buildHTML(currentState) + htmlbotoGuardar();
 
+  // -------------------------------------------------------------------
   // Referencia compartida para el timer y remaining
   let remaining = currentState.tempsRestant;
   let timerSub = null;
-
+  // -------------------------------------------------------------------
   // Iniciar temporizador
   if (timerSub) timerSub.unsubscribe();
   
@@ -299,6 +306,7 @@ function renderJoc(root, currentState) {
     }
   });
 
+  // -------------------------------------------------------------------
   // Event delegation para los clicks en el tablero
   const gameArea = root.querySelector('.game-area');
   gameArea.addEventListener('click', (ev) => {
@@ -307,33 +315,41 @@ function renderJoc(root, currentState) {
 
     const id = parseInt(boton.id);
     
-    // Comprobar en qué se hizo clic
-    const clickEnTopo = comprobarClickEnTopo(id, currentState.topo);
-    
+    // Guarda en una variable el tipo de celda que es el boto al que has apretat.
+    // exemple:
+    // 0 -> madriguera
+    // 3 -> topo
+    const tipoDeCelda = traurerTipoCelda(id, currentState.topo);
+
+    // -------------------------------------------------------------------
     // Actualizar estado según el click
-    if (clickEnTopo === currentState.colorTopoActual) {
+    if (tipoDeCelda === currentState.colorTopoActual) {
       currentState = actualizarPuntuacio(currentState, +1);
-    } else if (clickEnTopo === TIPOS_CELDA.madriguera) {
+    } else if (tipoDeCelda === TIPOS_CELDA.madriguera) {
       currentState = actualizarTemps(currentState, PENALIZACION_MADRIGUERA);
     } else {
       currentState = actualizarTemps(currentState, PENALIZACION_COLOR_INCORRECTE);
     }
 
+    // -------------------------------------------------------------------
     // Sincronizar remaining con el state
     remaining = currentState.tempsRestant;
 
     // Actualizar UI
     actualizarUI(root, currentState, remaining);
 
+    // -------------------------------------------------------------------
     // Verificar si se acabó el tiempo por el click
     if (remaining <= 0) {
       finalizarJoc(root, timerSub, currentState.puntuacio);
       return;
     }
 
+    // -------------------------------------------------------------------
     // Ocultar tablero temporalmente
     ocultarTablero(root);
 
+    // -------------------------------------------------------------------
     // Esperar 300ms antes de actualizar el tablero
     setTimeout(() => {
       if (seHaAcabatElTemps(currentState)) {
@@ -341,10 +357,12 @@ function renderJoc(root, currentState) {
         return;
       }
 
+      // -------------------------------------------------------------------
       // Generar nuevo estado
       currentState.topo = generarPosicionsTopo();
       currentState.colorTopoActual = colorAleatori();
       
+      // -------------------------------------------------------------------
       // Actualizar tablero y color
       actualizarTableroYColor(root, currentState);
     }, 300);
