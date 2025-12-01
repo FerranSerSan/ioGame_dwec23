@@ -2,12 +2,12 @@ export { renderContent, comprobarClickEnTopo, actualizarPuntuacio};
 
 import { interval } from 'rxjs';
 
-const TABLERO_LENGTH = 91;
-const JUGADOR_ACTUAL = "Jugadorx";
-const TEMPS = 3000; // segons
-const PENALIZACION_MADRIGUERA = 3; // segons que se resten
-const PENALIZACION_COLOR_INCORRECTE = 5; // segons que se resten
-const TIPOS_CELDA = {
+const TABLERO_LENGTH = 78;                // Longitud del tablero 
+const JUGADOR_ACTUAL = "Jugadorx";        // Nom del jugador
+const TEMPS = 3000;                       // tems expresat en segons que dura la partida
+const PENALIZACION_MADRIGUERA = 3;        // segons que se resten al apretar la madriguera
+const PENALIZACION_COLOR_INCORRECTE = 5;  // segons que se resten al apretar el topo incorrecte
+const TIPOS_CELDA = {                     // tots els tipos de celdes "Topos" que hi han
   madriguera: 0,
   topoMorado: 1,
   topoAzul: 2,
@@ -15,17 +15,22 @@ const TIPOS_CELDA = {
   topoRosa: 4,
   topoGris: 5,
   topoAmarillo: 6,
-  topoVerde: 7
+  topoVerde: 7,
+  topoNaranja: 8,
+  topoNegro: 9,
+  topoBlanco: 10,
+  topoOro:11
 };
 
-// Estat per defecte
+// Estat per defecte del joc
+// conte variables que se utilitzen a lo llarg del codi
 function defaultState() {
   return {
-    puntuacio: 0,
-    tempsRestant: TEMPS,
-    tablero: Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera),
-    colorTopoActual: colorAleatori(),
-    topo: generarPosicionsTopo()
+    puntuacio: 0,                                                 // La puntuacio del jugador
+    tempsRestant: TEMPS,                                          // el temps restant que li queda a la partida
+    tablero: Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera),  // el "tablero" conte informacio de el tipo de celda que te (expresat en numeros)
+    colorTopoActual: colorAleatori(),                             // el "valor" del topo al que hi ha que atrapar, (expresat en numeros)
+    topo: generarPosicionsTopo()                                  // un Array on es guarda el tipo de celda que es, i la seua posicio en el tablero
   };
 }
 
@@ -107,8 +112,13 @@ function renderTablero(tableroActual, topos) {
   return tableroCopia;
 }
 
-// Genera HTML de cada celda
-function renderTableroString(tableroActual, topos) {
+// Genera el HTML del tablero
+// Guarda en una array el tablero nou amb les posicions dels topos 
+// despues se mappea el array per a crear el HTML per cada celda
+// - div.board-cell: contenedor de la celda amb classe dinamica (ej: 'topoMorado', 'madriguera')
+// - button.topo-button: boto amb id per a identificar la posicio clicada
+// per ultim, envia tots els htmls en un string, que se añadira al DOM
+function renderTableroHTML(tableroActual, topos) {
   tableroActual = renderTablero(tableroActual, topos);
 
   return tableroActual.map((posicion, i) => {
@@ -119,13 +129,15 @@ function renderTableroString(tableroActual, topos) {
   }).join('');
 }
 
-// HTML completo del juego
+// HTML complet del joc
+// primer dibuixa la puntuacio, despres el div on es mostra el topo objectiu, finalment el tablero
 function buildHTML(state) {
   return buildPuntuacio(state) +
-    buildColorTopo(state) +
+    buildColorTopoObjectiu(state) +
     buildTablero(state);
 }
-
+// Retorna el html per a la puntuacio, on es mostra els punts que porta el jugador y el temps restant
+// arreplega les dades del state modificat que li se passa a la funcio
 function buildPuntuacio(state) {
   return `
   <div class="puntuacio">
@@ -135,25 +147,31 @@ function buildPuntuacio(state) {
     `;
 }
 
-function buildColorTopo(state) {
+// Retorna el HTML del div que mostra el color del topo objectiu
+// Busca el nom de la classe CSS corresponent al número del color actual (state.colorTopoActual)
+// Exemple: si colorTopoActual=1 → busca TIPOS_CELDA[key]===1 → troba 'topoMorado'
+// Aplica aquesta classe al div per mostrar el color que el jugador ha de capturar
+function buildColorTopoObjectiu(state) {
   const colorClave = Object.keys(TIPOS_CELDA).find(
     key => TIPOS_CELDA[key] === state.colorTopoActual
   );
 
-  console.log("Color topo actual: " + colorClave);
   return `
   <div class="color-Topo">
     <div class="${colorClave}" id="color-objetivo"></div>
   </div>`;
 }
 
+// Retorna el HTML del contenidor del tablero de joc
+// Crida a renderTableroHTML per generar les celdes amb els topos en les seues posicions
+// La estructura de divs crea el layout: container → board-wrapper → game-area → board
 function buildTablero(state) {
   return `
     <div class="container">
       <div class="board-wrapper">
         <div class="game-area">
           <div class="board">
-            ${renderTableroString(state.tablero, state.topo)}
+            ${renderTableroHTML(state.tablero, state.topo)}
           </div>
         </div>
       </div>
@@ -161,6 +179,7 @@ function buildTablero(state) {
   `;
 }
 
+// Retorna el HTML del boto de guardar la partida
 function htmlbotoGuardar() {
   return `
     <div class="guardar-partida">
@@ -169,7 +188,8 @@ function htmlbotoGuardar() {
   `;
 }
 
-// Función principal
+// Función principal que retorna el html de tot el joc
+// es crea el div "root", on se añadira tota la extructura del html que se genera amb les altres funcions
 function renderContent() {
   const root = document.createElement('div');
   root.className = 'topo-game-root';
@@ -177,7 +197,9 @@ function renderContent() {
   return root;
 }
 
-// Pantalla de inicio
+// Pantalla de inici
+// HTML amb les regles del joc i el boto per a començar la partida
+// al boto se li afegis un listener que crida a render joc i li envia el defaultstate com a parametre
 function renderInici(root) {
   root.innerHTML = `
     <div class="title"> Atrapa El topo </div>
@@ -200,7 +222,11 @@ function renderInici(root) {
   });
 }
 
+
+// --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Comprobar en qué tipo de celda se hizo clic
+
+// 
 function comprobarClickEnTopo(id, topos) {
   for (const color in topos) {
     if (topos[color] === id) {
@@ -223,14 +249,14 @@ function actualizarUI(root, state, remaining) {
 function ocultarTablero(root) {
   const boardDiv = root.querySelector('.board');
   const tableroAmagat = Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera);
-  boardDiv.innerHTML = renderTableroString(tableroAmagat, {});
+  boardDiv.innerHTML = renderTableroHTML(tableroAmagat, {});
 }
 
 // Actualizar tablero y color objetivo
 function actualizarTableroYColor(root, state) {
   const boardDiv = root.querySelector('.board');
   if (boardDiv) {
-    boardDiv.innerHTML = renderTableroString(state.tablero, state.topo);
+    boardDiv.innerHTML = renderTableroHTML(state.tablero, state.topo);
   }
 
   const colorDiv = root.querySelector('#color-objetivo');
@@ -252,7 +278,7 @@ function finalizarJoc(root, timerSub, puntuacio) {
 
 // Pantalla del juego
 function renderJoc(root, currentState) {
-  root.innerHTML = htmlbotoGuardar() + buildHTML(currentState);
+  root.innerHTML = buildHTML(currentState) + htmlbotoGuardar();
 
   // Referencia compartida para el timer y remaining
   let remaining = currentState.tempsRestant;
