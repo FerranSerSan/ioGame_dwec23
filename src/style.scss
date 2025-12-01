@@ -22,12 +22,6 @@
   background-image: url('./imgs/suelo.png');
 }
 
-/*
-.game-area *:hover {
-  cursor: url("./imgs/maza.png") 32 16, pointer;
-}
-*/
-
 /* Tauler de joc más compacto */
 .board {
   display: grid;
@@ -259,7 +253,7 @@ footer {
 }
 
 .regles .rule-score {
-  flex: 0 0 64px; /* ancho fijo para alinear todas las puntuaciones */
+  flex: 0 0 64px; 
   text-align: right;
   font-weight: 800;
   color: #111827;

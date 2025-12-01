@@ -4,7 +4,7 @@ import { interval } from 'rxjs';
 
 const TABLERO_LENGTH = 78;                // Longitud del tablero 
 const JUGADOR_ACTUAL = "Jugadorx";        // Nom del jugador
-const TEMPS = 3000;                       // tems expresat en segons que dura la partida
+const TEMPS = 30;                       // tems expresat en segons que dura la partida
 const PENALIZACION_MADRIGUERA = 3;        // segons que se resten al apretar la madriguera
 const PENALIZACION_COLOR_INCORRECTE = 5;  // segons que se resten al apretar el topo incorrecte
 const TIPOS_CELDA = {                     // tots els tipos de celdes "Topos" que hi han
@@ -74,7 +74,7 @@ function actualizarPuntuacio(state, delta) {
 }
 
 // Resta un valor al temps del state y retoran el nou temps
-function actualizarTemps(state, deltaSegundos) {
+function restaTemps(state, deltaSegundos) {
   const nuevoTemps = Math.max(0, state.tempsRestant - deltaSegundos);
   return {
     ...state,
@@ -201,15 +201,42 @@ function renderContent() {
 // HTML amb les regles del joc i el boto per a començar la partida
 // al boto se li afegis un listener que crida a render joc i li envia el defaultstate com a parametre
 function renderInici(root) {
+  const regles = {
+    1: {
+      info: `Fes clic al topo del color que apareix a la part superior`,
+      valor: `+1`
+    },
+    2: {
+      info: `Fer clic a una madriguera`,
+      valor: PENALIZACION_MADRIGUERA
+    },
+    3: {
+      info: `Fer clic a un topo d'un altre color`,
+      valor: PENALIZACION_COLOR_INCORRECTE
+    },
+    4: {
+      info: `El joc acaba quan s'acaba el temps. Bona sort!`,
+      valor: ""
+    }
+  };
+
+  let reglesHTML = "";
+  for (const key in regles) {
+    reglesHTML += `
+      <div class="rule">
+        <span class="rule-text">${regles[key].info}</span>
+        <span class="rule-score">${regles[key].valor}</span>
+      </div>
+    `;
+  }
+
   root.innerHTML = `
     <div class="title"> Atrapa El topo </div>
     <div class="regles">
       <h2>Regles del joc</h2>
-      <div class="rule"><span class="rule-text">Fes clic al topo del color que apareix a la part superior</span><span class="rule-score">+1p</span></div>
-      <div class="rule"><span class="rule-text">Fer clic a una madriguera</span><span class="rule-score">-${PENALIZACION_MADRIGUERA}s</span></div>
-      <div class="rule"><span class="rule-text">Fer clic a un topo d'un altre color</span><span class="rule-score">-${PENALIZACION_COLOR_INCORRECTE}s</span></div>
-      <p class="rule-note">El joc acaba quan s'acaba el temps. Bona sort!</p>
+      ${reglesHTML}
     </div>
+    
     <div class="pantalla-inici">
       <button id="start-button" class="start-button">Començar partida</button>
     </div>
@@ -230,35 +257,39 @@ function renderInici(root) {
 function traurerTipoCelda(id, topos) {
   for (const color in topos) {
     if (topos[color] === id) {
-      console.log(parseInt(color, 10) + "---" + id);
       return parseInt(color, 10);
     }
   }
-  console.log(parseInt(id));
   return TIPOS_CELDA.madriguera;
 }
 
-// ---------------------------------------------------------------
-// Actualizar UI de puntuación y tiempo
-function actualizarUI(root, state, remaining) {
-  const scoreSpan = root.querySelector('#puntuacio-valor');
-  if (scoreSpan) scoreSpan.textContent = String(state.puntuacio);
+
+// esta funcio actualiza el div on es mostra el temps restant y la puntuacio del jugador
+// sols es crida cuant se executa cuant es fa click a un boto del tablero
+function actualizarUI(root, state, tempsRestant) {
+  const spanPuntuacio = root.querySelector('#puntuacio-valor');
+  if (spanPuntuacio) spanPuntuacio.textContent = String(state.puntuacio);
   
-  const timeSpan = root.querySelector('#temps-restant');
-  if (timeSpan) timeSpan.textContent = `${remaining}s`;
+  const spanTemps = root.querySelector('#temps-restant');
+  if (spanTemps) spanTemps.textContent = `${tempsRestant}s`;
 }
 
-// ---------------------------------------------------------------
-// Ocultar tablero temporalmente
-function ocultarTablero(root) {
+// Esta funcio es un intento de animacio
+// plena el tablero de madrigueres cridant a render tablero en el tablero tot a 0
+// esta funcio esta dins de un setTimeout, per a que es mostre durant un temps
+function plenarMadrigueres(root) {
+  console.log("espera");
   const boardDiv = root.querySelector('.board');
   const tableroAmagat = Array(TABLERO_LENGTH).fill(TIPOS_CELDA.madriguera);
   boardDiv.innerHTML = renderTableroHTML(tableroAmagat, {});
 }
 
-// -------------------------------------------------------------------
-// Actualizar tablero y color objetivo
-function actualizarTableroYColor(root, state) {
+
+// Se li pasa el state actual i el element root on es dibuixa el tablero. 
+// Trau el estat del tablero i crida a la funcio que el dibuixa.
+// guarda en una variable el "id" del topo al que hi ha que atrapar.
+// despres cambia la clase del div on es mostra el topo per a cambiar la imatge del topo.
+function actualizarTableroIColor(root, state) {
   const boardDiv = root.querySelector('.board');
   if (boardDiv) {
     boardDiv.innerHTML = renderTableroHTML(state.tablero, state.topo);
@@ -273,46 +304,69 @@ function actualizarTableroYColor(root, state) {
   }
 }
 
-// -------------------------------------------------------------------
-// Finalizar juego
+
+// esta funcio fa un unsubscribe al contador, per a que deixe de actualizarse
+// despres mostra un missatge amb la puntuacio del jugador 
+// despres crida a la funcio que mostra el boto de començar la partida
 function finalizarJoc(root, timerSub, puntuacio) {
   if (timerSub) timerSub.unsubscribe();
   alert(`La puntuació final de ${JUGADOR_ACTUAL} és ${puntuacio}.`);
   renderInici(root);
 }
 
-// -------------------------------------------------------------------
-// Pantalla del juego
+// ----------------------renderJoc-------------------------------------
+
 function renderJoc(root, currentState) {
+  // afegis en el div root el html del joc i el boto per a guardar
   root.innerHTML = buildHTML(currentState) + htmlbotoGuardar();
 
-  // -------------------------------------------------------------------
-  // Referencia compartida para el timer y remaining
-  let remaining = currentState.tempsRestant;
+  // variable que guarda el temps restant
+  let tempsRestant = currentState.tempsRestant;
+
+  // variable que referencia a la subscripcio del temporizador
   let timerSub = null;
-  // -------------------------------------------------------------------
-  // Iniciar temporizador
+
+  // si ya existix un temporizador, cancela la subscripcio, per a que no es dupliquen els temporizadors
   if (timerSub) timerSub.unsubscribe();
   
+  // es crea el temporizador que cada segon: 
+  // - resta 1
+  // - actualiza el state afegint el temps que queda
+  // - cambia el contingut del span on es mostra el temps restant
+  // - comprova si se ha acabat el temps
   timerSub = interval(1000).subscribe(() => {
-    remaining = Math.max(0, remaining - 1);
-    currentState.tempsRestant = remaining;
 
+    // resta el temps pero mai baixa de 0
+    tempsRestant = Math.max(0, tempsRestant - 1);
+
+    // actualiza el temps en el state
+    currentState.tempsRestant = tempsRestant;
+
+    // cambia el contingut del span que mostra el temps per a que mostre el temps que queda
     const timeSpan = root.querySelector('#temps-restant');
-    if (timeSpan) timeSpan.textContent = `${remaining}s`;
+    if (timeSpan) timeSpan.textContent = `${tempsRestant}s`;
 
-    if (remaining <= 0) {
+    // si el temps aplega a 0, crid a la funcio que acaba el joc
+    if (tempsRestant <= 0) {
       finalizarJoc(root, timerSub, currentState.puntuacio);
     }
   });
 
-  // -------------------------------------------------------------------
-  // Event delegation para los clicks en el tablero
+
+  // obte el contenidor on es dibuixa el joc
   const gameArea = root.querySelector('.game-area');
+
+  // agrega el listener de click al contenidor on esta el tablero
+  // aixina no hi ha que fer un listener a cada boto
   gameArea.addEventListener('click', (ev) => {
+
+    // busca el element al que se ha fet click
     const boton = ev.target.closest('.topo-button');
+
+    // si no se ha fet click en un boto, fa un return per a acabar
     if (!boton) return;
 
+    // si se ha fet click en un boto, guarda el id del boto (posicio del boto) en una variable
     const id = parseInt(boton.id);
     
     // Guarda en una variable el tipo de celda que es el boto al que has apretat.
@@ -321,50 +375,57 @@ function renderJoc(root, currentState) {
     // 3 -> topo
     const tipoDeCelda = traurerTipoCelda(id, currentState.topo);
 
-    // -------------------------------------------------------------------
-    // Actualizar estado según el click
+    // comprovar aon se ha fet click
+    //
+    // Click en el topo que hi ha que capturar
     if (tipoDeCelda === currentState.colorTopoActual) {
+      // se crida a la funcio que suma la puntuacio
       currentState = actualizarPuntuacio(currentState, +1);
+
+      // Click en la madriguera buida
     } else if (tipoDeCelda === TIPOS_CELDA.madriguera) {
-      currentState = actualizarTemps(currentState, PENALIZACION_MADRIGUERA);
+      // se crida a la funcio que resta el temps
+      currentState = restaTemps(currentState, PENALIZACION_MADRIGUERA);
+
+      // Click en el topo incorrecte
     } else {
-      currentState = actualizarTemps(currentState, PENALIZACION_COLOR_INCORRECTE);
+      // se crida a la funcio que resta el temps
+      currentState = restaTemps(currentState, PENALIZACION_COLOR_INCORRECTE);
     }
 
-    // -------------------------------------------------------------------
-    // Sincronizar remaining con el state
-    remaining = currentState.tempsRestant;
+    // Despues de modificar el temps o la puntuacio, se guarda en una variable
+    tempsRestant = currentState.tempsRestant;
 
-    // Actualizar UI
-    actualizarUI(root, currentState, remaining);
+    // actualiza el UI despues de modificar el temps i la puntuacio
+    actualizarUI(root, currentState, tempsRestant);
 
-    // -------------------------------------------------------------------
-    // Verificar si se acabó el tiempo por el click
-    if (remaining <= 0) {
+    // verifica si el temps es menor o igual a 0 despres del click
+    if (tempsRestant <= 0) {
+      // crida la funcio que acaba el joc
       finalizarJoc(root, timerSub, currentState.puntuacio);
       return;
     }
 
-    // -------------------------------------------------------------------
-    // Ocultar tablero temporalmente
-    ocultarTablero(root);
+    // Oculta els topos del tablero temporalment
+    plenarMadrigueres(root);
 
-    // -------------------------------------------------------------------
-    // Esperar 300ms antes de actualizar el tablero
+    // Espera 350ms antes de actualitzar el tablero
     setTimeout(() => {
+      // verifica si se ha acabat el temps durant la pausa
       if (seHaAcabatElTemps(currentState)) {
+        // si se a acabat el temps, el joc se acaba
         finalizarJoc(root, timerSub, currentState.puntuacio);
         return;
       }
 
-      // -------------------------------------------------------------------
-      // Generar nuevo estado
+      // Genera un estat nou per a la seguent ronda
+      // genera les posicions aleatories per als topos
       currentState.topo = generarPosicionsTopo();
+      // genera internament al topo que hi ha que atrapar
       currentState.colorTopoActual = colorAleatori();
       
-      // -------------------------------------------------------------------
-      // Actualizar tablero y color
-      actualizarTableroYColor(root, currentState);
-    }, 300);
+      // mostra els datos en el html
+      actualizarTableroIColor(root, currentState);
+    }, 350);
   });
 }
